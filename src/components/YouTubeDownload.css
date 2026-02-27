@@ -1,0 +1,67 @@
+.yt-page {
+  min-height: calc(100vh - 56px);
+  padding: 1.5rem;
+}
+
+.yt-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.yt-topbar button {
+  padding: 0.45rem 0.8rem;
+}
+
+.yt-card {
+  max-width: 760px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.yt-card input {
+  width: 100%;
+  padding: 0.72rem 0.85rem;
+}
+
+.yt-download-btn {
+  margin-top: 0.6rem;
+  padding: 0.75rem 1rem;
+}
+
+.yt-progress {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.yt-progress-track {
+  height: 8px;
+  flex: 1;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.yt-progress-fill {
+  height: 100%;
+  background: #7c83ff;
+}
+
+.yt-error {
+  color: #fca5a5;
+}
+
+.yt-result {
+  margin-top: 0.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+}

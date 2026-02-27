@@ -2,7 +2,7 @@
 
 .chat-layout {
   display: flex;
-  height: 100vh;
+  height: calc(100vh - 56px);
   width: 100%;
   overflow: hidden;
 }
@@ -522,6 +522,7 @@
   border-radius: 10px;
   object-fit: cover;
   border: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: pointer;
 }
 
 /* ── Input area ───────────────────────────────────────────────────────────── */
@@ -957,6 +958,98 @@
   color: rgba(255, 255, 255, 0.45);
   text-transform: uppercase;
   margin: 0 0 0.6rem 0.5rem;
+}
+
+.metric-chart-wrap {
+  margin-top: 0.8rem;
+  padding: 0.75rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  cursor: pointer;
+}
+
+.metric-chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.metric-chart-header button {
+  padding: 0.32rem 0.58rem;
+  border-radius: 7px;
+}
+
+.video-card {
+  margin-top: 0.75rem;
+  display: flex;
+  gap: 0.75rem;
+  text-decoration: none;
+  color: inherit;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.video-card img {
+  width: 180px;
+  object-fit: cover;
+}
+
+.video-card div {
+  padding: 0.7rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.video-card span {
+  font-size: 0.8rem;
+  color: #93c5fd;
+}
+
+.generated-image-card {
+  margin-top: 0.7rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.generated-image-card img {
+  max-width: 320px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+}
+
+.generated-image-card a {
+  font-size: 0.8rem;
+  color: #93c5fd;
+}
+
+.lightbox {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.78);
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.lightbox img {
+  max-width: 92vw;
+  max-height: 92vh;
+  border-radius: 12px;
+}
+
+.lightbox-chart {
+  width: min(90vw, 960px);
+  background: #101227;
+  border-radius: 12px;
+  padding: 0.75rem;
 }
 
 /* ── Empty state ─────────────────────────────────────────────────────────── */

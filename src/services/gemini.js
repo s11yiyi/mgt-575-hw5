@@ -3,7 +3,7 @@ import { CSV_TOOL_DECLARATIONS } from './csvTools';
 
 const genAI = new GoogleGenerativeAI(process.env.REACT_APP_GEMINI_API_KEY || '');
 
-const MODEL = 'gemini-2.0-flash';
+const MODEL = 'gemini-2.5-flash';
 
 const SEARCH_TOOL = { googleSearch: {} };
 const CODE_EXEC_TOOL = { codeExecution: {} };
@@ -129,10 +129,26 @@ export const streamChat = async function* (history, newMessage, imageParts = [],
 // Returns the final text response from the model.
 
 export const chatWithCsvTools = async (history, newMessage, csvHeaders, executeFn) => {
+  return chatWithTools({
+    history,
+    newMessage,
+    toolDeclarations: CSV_TOOL_DECLARATIONS,
+    executeFn,
+    contextPrefix: csvHeaders?.length ? `[CSV columns: ${csvHeaders.join(', ')}]\n\n` : '',
+  });
+};
+
+export const chatWithTools = async ({
+  history,
+  newMessage,
+  toolDeclarations,
+  executeFn,
+  contextPrefix = '',
+}) => {
   const systemInstruction = await loadSystemPrompt();
   const model = genAI.getGenerativeModel({
     model: MODEL,
-    tools: [{ functionDeclarations: CSV_TOOL_DECLARATIONS }],
+    tools: [{ functionDeclarations: toolDeclarations }],
   });
 
   const baseHistory = history.map((m) => ({
@@ -154,9 +170,7 @@ export const chatWithCsvTools = async (history, newMessage, csvHeaders, executeF
   const chat = model.startChat({ history: chatHistory });
 
   // Include column names so the model can match user intent to exact column names
-  const msgWithContext = csvHeaders?.length
-    ? `[CSV columns: ${csvHeaders.join(', ')}]\n\n${newMessage}`
-    : newMessage;
+  const msgWithContext = `${contextPrefix}${newMessage}`;
 
   let response = (await chat.sendMessage(msgWithContext)).response;
 

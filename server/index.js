@@ -3,6 +3,11 @@ const express = require('express');
 const { MongoClient, ObjectId } = require('mongodb');
 const bcrypt = require('bcryptjs');
 const cors = require('cors');
+const { YoutubeTranscript } = require('youtube-transcript');
+const { execFile } = require('child_process');
+const { promisify } = require('util');
+
+const execFileAsync = promisify(execFile);
 
 const app = express();
 app.use(cors());
@@ -47,7 +52,7 @@ app.get('/api/status', async (req, res) => {
 
 app.post('/api/users', async (req, res) => {
   try {
-    const { username, password, email } = req.body;
+    const { username, password, email, firstName, lastName } = req.body;
     if (!username || !password)
       return res.status(400).json({ error: 'Username and password required' });
     const name = String(username).trim().toLowerCase();
@@ -58,6 +63,8 @@ app.post('/api/users', async (req, res) => {
       username: name,
       password: hashed,
       email: email ? String(email).trim().toLowerCase() : null,
+      firstName: firstName ? String(firstName).trim() : '',
+      lastName: lastName ? String(lastName).trim() : '',
       createdAt: new Date().toISOString(),
     });
     res.json({ ok: true });
@@ -76,7 +83,12 @@ app.post('/api/users/login', async (req, res) => {
     if (!user) return res.status(401).json({ error: 'User not found' });
     const ok = await bcrypt.compare(password, user.password);
     if (!ok) return res.status(401).json({ error: 'Invalid password' });
-    res.json({ ok: true, username: name });
+    res.json({
+      ok: true,
+      username: name,
+      firstName: user.firstName || '',
+      lastName: user.lastName || '',
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -203,6 +215,104 @@ app.get('/api/messages', async (req, res) => {
     res.json(msgs);
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// ── YouTube channel download (yt-dlp based) ─────────────────────────────────
+
+const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
+
+const secToIsoDuration = (secs) => {
+  const n = Number(secs);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  const h = Math.floor(n / 3600);
+  const m = Math.floor((n % 3600) / 60);
+  const s = Math.floor(n % 60);
+  return `PT${h ? `${h}H` : ''}${m ? `${m}M` : ''}${s || (!h && !m) ? `${s}S` : ''}`;
+};
+
+const yyyymmddToIsoDate = (s) => {
+  if (!s || typeof s !== 'string' || s.length !== 8) return null;
+  return `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}`;
+};
+
+const ytdlp = (args, timeout = 60000) =>
+  execFileAsync('yt-dlp', args, { timeout, maxBuffer: 50 * 1024 * 1024 });
+
+const fetchChannelVideoIds = async (channelUrl, maxVideos) => {
+  const { stdout } = await ytdlp([
+    '--flat-playlist',
+    '--dump-single-json',
+    '--no-warnings',
+    '--playlist-end', String(maxVideos),
+    `${channelUrl}/videos`,
+  ], 120000);
+  const data = JSON.parse(stdout);
+  const channelTitle = data?.channel || data?.uploader || '';
+  const channelId = data?.channel_id || '';
+  const entries = (data?.entries || []).slice(0, maxVideos).map((e) => ({
+    videoId: e.id || e.url || '',
+    title: e.title || '',
+  }));
+  return { channelId, channelTitle, entries };
+};
+
+const fetchVideoMetadata = async (videoId) => {
+  const url = `https://www.youtube.com/watch?v=${videoId}`;
+  const { stdout } = await ytdlp([
+    '--dump-single-json',
+    '--no-warnings',
+    '--skip-download',
+    '--no-playlist',
+    url,
+  ]);
+  const d = JSON.parse(stdout);
+
+  const transcript = await YoutubeTranscript.fetchTranscript(videoId)
+    .then((items) => items.map((x) => x.text).join(' ').trim())
+    .catch(() => null);
+
+  return {
+    video_id: videoId,
+    title: d?.title || '',
+    description: d?.description || '',
+    transcript: transcript || null,
+    duration: secToIsoDuration(d?.duration),
+    release_date: yyyymmddToIsoDate(d?.upload_date),
+    view_count: Number.isFinite(d?.view_count) ? d.view_count : null,
+    like_count: Number.isFinite(d?.like_count) ? d.like_count : null,
+    comment_count: Number.isFinite(d?.comment_count) ? d.comment_count : null,
+    video_url: d?.webpage_url || url,
+    thumbnail_url: d?.thumbnail || null,
+  };
+};
+
+app.post('/api/youtube/channel-videos', async (req, res) => {
+  try {
+    const { channelUrl, maxVideos = 10 } = req.body || {};
+    if (!channelUrl) return res.status(400).json({ error: 'channelUrl is required' });
+    const safeMax = clamp(Number(maxVideos) || 10, 1, 100);
+    const { channelId, channelTitle, entries } = await fetchChannelVideoIds(channelUrl, safeMax);
+    return res.json({
+      channelId,
+      channelTitle,
+      channelUrl,
+      maxVideos: safeMax,
+      videos: entries,
+    });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/youtube/video-metadata', async (req, res) => {
+  try {
+    const { videoId } = req.query;
+    if (!videoId) return res.status(400).json({ error: 'videoId is required' });
+    const metadata = await fetchVideoMetadata(videoId);
+    return res.json(metadata);
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
   }
 });
 
